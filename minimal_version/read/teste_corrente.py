@@ -6,22 +6,20 @@ import csv
 ser = serial.Serial('COM3', baudrate = 9600, timeout=1)
 time.sleep(.1)
 
-fieldnames = ["full_date","timestamp","voltage_pump","current","temperature","flow_rate","hydrogen","pulse_count","analog_corrente"]
+fields = ["full_date","timestamp","voltage","current","analog_READ","flow_rate","pulse_count"]
 path = r'C:\Users\SUPERVISORIO\Documents\supervisory-system\minimal_version\read\sensor_history.csv'
 
-def writeToFile(full_date,timestamp,voltage_pump,current,temperature,flow_rate,hydrogen,pulse, analog_corrente):
+def writeToFile(full_date,timestamp,voltage,current,analog_READ,flow_rate,pulse):
     with open(path,'a') as csv_file:
-            csv_writer = csv.DictWriter(csv_file, delimiter=',', lineterminator='\n', fieldnames=fieldnames)
+            csv_writer = csv.DictWriter(csv_file, delimiter=',', lineterminator='\n', fieldnames=fields)
             info = {
                 "full_date": full_date,
                 "timestamp": timestamp,
-                "voltage_pump": voltage_pump,
+                "voltage": voltage,
                 "current": current,
-                "temperature": temperature,
+                "analog_READ": analog_READ,
                 "flow_rate": flow_rate,
-                "hydrogen": hydrogen,
                 "pulse_count": pulse,
-                "analog_corrente": analog_corrente,
             }
             csv_writer.writerow(info)
     time.sleep(5)
@@ -31,9 +29,8 @@ def formatBeforeWrite(res):
     full_date = now.strftime('%d/%m/%Y')
     timestamp = now.strftime('%H:%M:%S')
     if(len(res)> 1):
-        if(res[3] != -1):
-            writeToFile(full_date,timestamp,voltage_pump=res[0],current=res[1],temperature=res[2],flow_rate=res[3],hydrogen=res[4],pulse=res[5],analog_corrente=res[6])
-            # writeToFile(full_date,timestamp,voltage_eletrode=res[0],voltage_pump=res[1],current=res[2],temperature=res[3],flow_rate=res[4],hydrogen=res[5],pulse=res[6],analog_corrente=res[7])
+        if(res[0] != 0):
+            writeToFile(full_date,timestamp,voltage=res[0],current=res[1],analog_READ=res[2],flow_rate=res[3],pulse=res[4])
     else:
         pass
 

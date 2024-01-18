@@ -40,9 +40,12 @@ char inputCsvString[2];
 
 
 #define sensorACS712 A3      //Pino sensor de corrente
-#define sensorTensaoDC A1    //Pino sensor de tensão
+#define sensorTensaoDC1 A1    //Pino sensor de tensão dos eletrodos
+#define sensorTensaoDC2 A2    //Pino sensor de tensão da bomba
 float R1 = 30000;
 float R2 = 7500;
+float R3 = 33000;
+float R4 = 6800;
 float sensibilidade = 0.066; //
 unsigned int tempo = 0;
 float temperatureByIndex;
@@ -56,7 +59,8 @@ float calculoVazao;
 unsigned long tempo_inicio_abertura;
 unsigned long tempo_total_abertura;
 boolean torneira_aberta = false;
-float tensao;
+float tensao_1;
+//float tensao_2;
 float corrente;
 
 //-----------------------------------------------------Declarações sensor de temperatura-------------------------------------------------------
@@ -90,7 +94,8 @@ void setup() {
 
   analogReference(DEFAULT); //Valor referencial
   Serial.begin(9600);
-  pinMode(sensorTensaoDC, INPUT); //Declara pino sensor de tensao
+  pinMode(sensorTensaoDC1, INPUT); //Declara pino sensor de tensao
+  //pinMode(sensorTensaoDC2, INPUT); //Declara pino sensor de tensao
   pinMode(sensorACS712, INPUT); //Declara pino sensor de corrente
   //tempo = millis();
 
@@ -107,12 +112,17 @@ void loop() {
 
   //-----------SENSOR DE TENSÃO E CORRENTE--------------
 
-    unsigned int tensao_ADC = analogRead(sensorTensaoDC);
+    unsigned int tensao_ADC1 = analogRead(sensorTensaoDC1); //tensao eletrodos
+    //unsigned int tensao_ADC2 = analogRead(sensorTensaoDC2); //tensao bomba
     unsigned int corrente_ADC = analogRead(sensorACS712);
 
-    tensao = tensao_ADC*(5.0/1023.0);
-    tensao /= (R2/(R1+R2));
-    float corrente = (corrente_ADC*(5.0/1023.0))-2.5;
+    tensao_1 = tensao_ADC1*(5.0/1023.0);
+    tensao_1 /= (R2/(R1+R2));
+
+    //tensao_2 = tensao_ADC2*(5.0/1023.0);
+    //tensao_2 /= (R4/(R3+R4));
+    
+    corrente = ((corrente_ADC)*(5.0/1023.0))-2.5;
     corrente /= sensibilidade;
 
   //-----------SENSOR DE TEMPERATURA--------------
@@ -140,7 +150,7 @@ void loop() {
 
 
   if (contaPulso > 0){
-      calculoVazao = contaPulso*(1.11/8); 
+      calculoVazao = contaPulso*(1.11/10); 
   }
   else{
     calculoVazao = -1;
@@ -148,6 +158,7 @@ void loop() {
 
   readCSV();
   serialResponse();
+  //readAllData();
   delay(1000);
 
 }
@@ -184,6 +195,7 @@ void serialResponse(){
   
   if(inputCsvString[0] == 'r'){
     readAllData();
+    //readTestData();
   }
 
   else if(inputCsvString[0] == 'w'){
@@ -202,9 +214,25 @@ void write(){
   Serial.println(inputFloat);
 }
 
-void readAllData(){
-  Serial.print(tensao);
+void readTestData(){
+  Serial.print(tensao_1);
   Serial.print(",");
+  //Serial.print(tensao_2);
+  //Serial.print(",");
+  Serial.print(corrente);
+  Serial.print(",");
+  Serial.print(analogRead(sensorACS712));
+  Serial.print(",");
+  Serial.print(calculoVazao);
+  Serial.print(",");
+  Serial.println(contaPulso);
+}
+
+void readAllData(){
+  Serial.print(tensao_1);
+  Serial.print(",");
+  //Serial.print(tensao_2);
+  //Serial.print(",");
   Serial.print(corrente);
   Serial.print(",");
   Serial.print(temperatureByIndex);
@@ -213,7 +241,9 @@ void readAllData(){
   Serial.print(",");
   Serial.print(hydrogen);
   Serial.print(",");
-  Serial.println(contaPulso);
+  Serial.print(contaPulso);
+  Serial.print(",");
+  Serial.println(analogRead(sensorACS712));
 }
 
 
