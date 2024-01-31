@@ -1,0 +1,90 @@
+float setpoint = 2.50;         //Variavel que armazena o valor do set point padrao de tensao
+byte saidaAnalogica = 0;        //Variavel que armazena o valor do PWM (0 a 255)
+unsigned long tempoant = 0;     //Variavel que armazena um valor de tempo
+float tensao = 0.0;        //Variavel que armazena um valor de temperatura
+//variaveis para PID
+double outputTensaoPID;
+double somaErro, erroAnt;
+double kp, ki, kd;
+
+void setup() {
+  pinMode(5, OUTPUT);
+  Serial.begin(9600);
+  analogWrite(5, saidaAnalogica);
+  tempoant = micros();            //Registra um tempo
+}
+
+void loop() {
+  //BLOCO PARA LEITURA DE TENSAO A CADA 1 MILISSEGUNDOS
+  unsigned long tempo = micros();
+  if(tempo>(tempoant+100)){                     //compara com o tempo anterior
+    tensao = analogRead(A0)*(5.2/1023.0);
+    tensao *= 5.72;
+    tensao += 0.3;
+    readBuffer();
+    serialResponse();
+    buckControl();
+    tempoant = tempo;                           //recomeca a contagem de tempo
+  }
+}
+
+void readBuffer(){
+  inputSeveral[0] = 0;
+  maxChars = buffSize - 1;
+  byte charCount = 0;
+  byte ndx = 0;
+
+  if(Serial.available() > 0){
+    while (Serial.available() > 0) { 
+        if (ndx > maxChars - 1) {
+          ndx = maxChars;
+        } 
+        inputSeveral[ndx] = Serial.read();
+        ndx ++;        
+        charCount ++;
+      }
+      if (ndx > maxChars) { 
+        ndx = maxChars;
+      }
+      inputSeveral[ndx] = 0; 
+  }
+}                          //realiza a leitura do buffer serial
+
+void buckControl(){
+  //BLOCO DE CALCULO DO ERRO [BUCK]
+  float erro = setpoint - tensao;           //ERRO
+  float erro_absoluto = abs(erro);          //ERRO ABSOLUTO  
+
+  //BLOCO DE CONTROLE
+  if(erro_absoluto>=(0.05)){                 //ERRO ABSOLUTO MENOR QUE 0.1 V INICIA O CONTROLE
+    if((erro>0.0)&&(saidaAnalogica!=255)){saidaAnalogica++;}    //ERRO POSITIVO -> DIMINUI O PWM
+    if((erro<0.0)&&(saidaAnalogica!=0)){saidaAnalogica--;}  //ERRO NEGATIVO -> AUMENTA O PWM
+    if(saidaAnalogica==0) saidaAnalogica++;
+    if(saidaAnalogica==255) saidaAnalogica--;
+    analogWrite(5, saidaAnalogica);                           //GERA O PWM COM O VALOR ATUALIZADO
+  }
+}                         //controle P do circuito Buck
+
+void serialResponse(){
+  char * partOfString;
+  partOfString = strtok(inputSeveral,",");      
+  
+  strcpy(inputCsvString, partOfString); 
+  partOfString = strtok(NULL, ","); 
+  inputFloat = atof(partOfString); 
+
+  if(inputCsvString[0] == 'w'){
+    setpoint = inputFloat;
+  }
+} //altera o valor de SETPOINT para o desejado pelo operador
+
+void PID_flow(long tempo){
+    double deltaT = (double)(tempo - tempoant);
+   double error = setpoint - tensao;
+   somaErro += (error * deltaT);
+   double dErro = (error - erroAnt) / deltaT;
+   tensao = kp * error + ki * somaErro + kd * dErro;
+   erroAnt = error;
+}
+
+
